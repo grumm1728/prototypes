@@ -1,4 +1,5 @@
 const MAX_N = 22;
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const arrayInput = document.getElementById('arrayInput');
 const thresholdInput = document.getElementById('thresholdInput');
@@ -7,6 +8,8 @@ const downloadButton = document.getElementById('downloadButton');
 const errorEl = document.getElementById('error');
 const summaryText = document.getElementById('summaryText');
 const resultsBody = document.getElementById('resultsBody');
+const histogramPlot = document.getElementById('histogramPlot');
+const histogramSummary = document.getElementById('histogramSummary');
 
 let latestRows = [];
 
@@ -23,6 +26,23 @@ function parseArray(raw) {
     }
     return value;
   });
+}
+
+function enumerateSubsetSums(values) {
+  const totalMasks = 1 << values.length;
+  const bins = new Map();
+
+  for (let mask = 1; mask < totalMasks; mask += 1) {
+    let sum = 0;
+    for (let i = 0; i < values.length; i += 1) {
+      if (mask & (1 << i)) {
+        sum += values[i];
+      }
+    }
+    bins.set(sum, (bins.get(sum) || 0) + 1);
+  }
+
+  return bins;
 }
 
 function findSubsetsAtOrAbove(values, threshold) {
@@ -72,6 +92,111 @@ function renderRows(rows) {
   resultsBody.appendChild(frag);
 }
 
+function clearHistogram(message) {
+  histogramPlot.replaceChildren();
+  histogramSummary.textContent = message;
+}
+
+function renderHistogram(sumBins, threshold) {
+  const sums = [...sumBins.keys()].sort((a, b) => a - b);
+  if (sums.length === 0) {
+    clearHistogram('No subset data to plot.');
+    return;
+  }
+
+  const counts = sums.map((s) => sumBins.get(s));
+  const maxCount = Math.max(...counts);
+
+  const width = 900;
+  const height = 280;
+  const margin = { top: 20, right: 20, bottom: 50, left: 55 };
+  const plotW = width - margin.left - margin.right;
+  const plotH = height - margin.top - margin.bottom;
+  const barW = plotW / sums.length;
+
+  histogramPlot.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  histogramPlot.replaceChildren();
+
+  const axisColor = '#334155';
+  const barColor = '#93c5fd';
+  const thresholdColor = '#dc2626';
+
+  const xAxis = document.createElementNS(SVG_NS, 'line');
+  xAxis.setAttribute('x1', String(margin.left));
+  xAxis.setAttribute('y1', String(margin.top + plotH));
+  xAxis.setAttribute('x2', String(margin.left + plotW));
+  xAxis.setAttribute('y2', String(margin.top + plotH));
+  xAxis.setAttribute('stroke', axisColor);
+  histogramPlot.appendChild(xAxis);
+
+  const yAxis = document.createElementNS(SVG_NS, 'line');
+  yAxis.setAttribute('x1', String(margin.left));
+  yAxis.setAttribute('y1', String(margin.top));
+  yAxis.setAttribute('x2', String(margin.left));
+  yAxis.setAttribute('y2', String(margin.top + plotH));
+  yAxis.setAttribute('stroke', axisColor);
+  histogramPlot.appendChild(yAxis);
+
+  sums.forEach((sum, idx) => {
+    const count = sumBins.get(sum);
+    const barHeight = (count / maxCount) * plotH;
+    const x = margin.left + idx * barW;
+    const y = margin.top + (plotH - barHeight);
+
+    const rect = document.createElementNS(SVG_NS, 'rect');
+    rect.setAttribute('x', String(x + 1));
+    rect.setAttribute('y', String(y));
+    rect.setAttribute('width', String(Math.max(barW - 2, 1)));
+    rect.setAttribute('height', String(barHeight));
+    rect.setAttribute('fill', barColor);
+    rect.setAttribute('class', sum >= threshold ? 'bar-over-threshold' : 'bar-under-threshold');
+    rect.appendChild(document.createElementNS(SVG_NS, 'title')).textContent = `sum=${sum}, count=${count}`;
+    histogramPlot.appendChild(rect);
+  });
+
+  const minSum = sums[0];
+  const maxSum = sums[sums.length - 1];
+  const span = Math.max(maxSum - minSum, 1);
+  const thresholdX = margin.left + ((threshold - minSum) / span) * plotW;
+  const clampedX = Math.min(margin.left + plotW, Math.max(margin.left, thresholdX));
+
+  const thresholdLine = document.createElementNS(SVG_NS, 'line');
+  thresholdLine.setAttribute('x1', String(clampedX));
+  thresholdLine.setAttribute('y1', String(margin.top));
+  thresholdLine.setAttribute('x2', String(clampedX));
+  thresholdLine.setAttribute('y2', String(margin.top + plotH));
+  thresholdLine.setAttribute('stroke', thresholdColor);
+  thresholdLine.setAttribute('stroke-width', '2');
+  thresholdLine.setAttribute('stroke-dasharray', '6 4');
+  histogramPlot.appendChild(thresholdLine);
+
+  const thresholdLabel = document.createElementNS(SVG_NS, 'text');
+  thresholdLabel.setAttribute('x', String(Math.min(clampedX + 6, margin.left + plotW - 90)));
+  thresholdLabel.setAttribute('y', String(margin.top + 14));
+  thresholdLabel.setAttribute('fill', thresholdColor);
+  thresholdLabel.setAttribute('font-size', '12');
+  thresholdLabel.textContent = `M = ${threshold}`;
+  histogramPlot.appendChild(thresholdLabel);
+
+  const xLabelMin = document.createElementNS(SVG_NS, 'text');
+  xLabelMin.setAttribute('x', String(margin.left));
+  xLabelMin.setAttribute('y', String(height - 20));
+  xLabelMin.setAttribute('fill', axisColor);
+  xLabelMin.setAttribute('font-size', '12');
+  xLabelMin.textContent = `min sum: ${minSum}`;
+  histogramPlot.appendChild(xLabelMin);
+
+  const xLabelMax = document.createElementNS(SVG_NS, 'text');
+  xLabelMax.setAttribute('x', String(margin.left + plotW - 90));
+  xLabelMax.setAttribute('y', String(height - 20));
+  xLabelMax.setAttribute('fill', axisColor);
+  xLabelMax.setAttribute('font-size', '12');
+  xLabelMax.textContent = `max sum: ${maxSum}`;
+  histogramPlot.appendChild(xLabelMax);
+
+  histogramSummary.textContent = `Histogram bins: ${sums.length} unique sum value(s), max frequency: ${maxCount}. Red line marks threshold M.`;
+}
+
 function toCsv(rows) {
   const header = 'index,subset,sum,length';
   const lines = rows.map((row, idx) => {
@@ -96,6 +221,9 @@ function run() {
       throw new Error('M must be a positive integer.');
     }
 
+    const sumBins = enumerateSubsetSums(values);
+    renderHistogram(sumBins, threshold);
+
     const rows = findSubsetsAtOrAbove(values, threshold);
     latestRows = rows;
     renderRows(rows);
@@ -106,6 +234,7 @@ function run() {
   } catch (err) {
     latestRows = [];
     renderRows([]);
+    clearHistogram('Run the search to generate a histogram.');
     summaryText.textContent = 'No results yet.';
     errorEl.textContent = err.message;
   }

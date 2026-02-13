@@ -14,6 +14,7 @@ Given an array `A` of positive integers and a threshold `M`, the app enumerates 
   - subset length
 - Sort results by descending sum (with deterministic tie-breakers)
 - Download displayed results as CSV
+- View a histogram of subset sums with the threshold marker
 
 ## Input limits
 

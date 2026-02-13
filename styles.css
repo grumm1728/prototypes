@@ -18,9 +18,11 @@ body {
 }
 
 h1 { margin-bottom: 0.4rem; }
+h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
 .lead { margin-top: 0; color: #374151; }
+.muted { color: #475569; }
 
-.controls, .summary, .results {
+.controls, .summary, .histogram, .results {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -68,6 +70,27 @@ button[disabled] {
   min-height: 1.2rem;
   color: #b91c1c;
   margin: 0.5rem 0 0;
+}
+
+.histogram-scroll {
+  overflow-x: auto;
+}
+
+#histogramPlot {
+  width: 100%;
+  min-width: 720px;
+  height: 280px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.bar-over-threshold {
+  fill: #60a5fa;
+}
+
+.bar-under-threshold {
+  fill: #bfdbfe;
 }
 
 table {
