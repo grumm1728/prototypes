@@ -28,7 +28,7 @@ function parseArray(raw) {
   });
 }
 
-nfunction enumerateSubsets(values) {
+function enumerateSubsets(values) {
   const totalMasks = 1 << values.length;
   const rows = [];
 
