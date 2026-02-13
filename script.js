@@ -28,24 +28,7 @@ function parseArray(raw) {
   });
 }
 
-function enumerateSubsetSums(values) {
-  const totalMasks = 1 << values.length;
-  const bins = new Map();
-
-  for (let mask = 1; mask < totalMasks; mask += 1) {
-    let sum = 0;
-    for (let i = 0; i < values.length; i += 1) {
-      if (mask & (1 << i)) {
-        sum += values[i];
-      }
-    }
-    bins.set(sum, (bins.get(sum) || 0) + 1);
-  }
-
-  return bins;
-}
-
-function findSubsetsAtOrAbove(values, threshold) {
+nfunction enumerateSubsets(values) {
   const totalMasks = 1 << values.length;
   const rows = [];
 
@@ -61,13 +44,31 @@ function findSubsetsAtOrAbove(values, threshold) {
       }
     }
 
-    if (sum >= threshold) {
-      rows.push({ subset, sum, length: subset.length });
-    }
+    rows.push({ subset, sum, length: subset.length });
   }
 
-  rows.sort((a, b) => b.sum - a.sum || a.length - b.length || a.subset.join(',').localeCompare(b.subset.join(',')));
   return rows;
+}
+
+function findSubsetsAtOrAbove(allSubsets, threshold) {
+  return allSubsets
+    .filter((row) => row.sum >= threshold)
+    .sort((a, b) => b.sum - a.sum || a.length - b.length || a.subset.join(',').localeCompare(b.subset.join(',')));
+}
+
+function groupSubsetsBySum(allSubsets) {
+  const bins = new Map();
+
+  allSubsets.forEach((row) => {
+    const existing = bins.get(row.sum);
+    if (existing) {
+      existing.push(row);
+    } else {
+      bins.set(row.sum, [row]);
+    }
+  });
+
+  return bins;
 }
 
 function renderRows(rows) {
@@ -97,6 +98,16 @@ function clearHistogram(message) {
   histogramSummary.textContent = message;
 }
 
+function colorForLength(length, minLength, maxLength) {
+  if (minLength === maxLength) {
+    return 'hsl(220 80% 65%)';
+  }
+
+  const t = (length - minLength) / (maxLength - minLength);
+  const lightness = 88 - t * 38;
+  return `hsl(220 80% ${lightness}%)`;
+}
+
 function renderHistogram(sumBins, threshold) {
   const sums = [...sumBins.keys()].sort((a, b) => a - b);
   if (sums.length === 0) {
@@ -104,21 +115,26 @@ function renderHistogram(sumBins, threshold) {
     return;
   }
 
-  const counts = sums.map((s) => sumBins.get(s));
+  const counts = sums.map((sum) => sumBins.get(sum).length);
   const maxCount = Math.max(...counts);
 
+  const lengths = [];
+  sumBins.forEach((rows) => rows.forEach((r) => lengths.push(r.length)));
+  const minLength = Math.min(...lengths);
+  const maxLength = Math.max(...lengths);
+
   const width = 900;
-  const height = 280;
-  const margin = { top: 20, right: 20, bottom: 50, left: 55 };
+  const height = 320;
+  const margin = { top: 20, right: 20, bottom: 62, left: 55 };
   const plotW = width - margin.left - margin.right;
   const plotH = height - margin.top - margin.bottom;
   const barW = plotW / sums.length;
+  const unitH = plotH / maxCount;
 
   histogramPlot.setAttribute('viewBox', `0 0 ${width} ${height}`);
   histogramPlot.replaceChildren();
 
   const axisColor = '#334155';
-  const barColor = '#93c5fd';
   const thresholdColor = '#dc2626';
 
   const xAxis = document.createElementNS(SVG_NS, 'line');
@@ -138,20 +154,23 @@ function renderHistogram(sumBins, threshold) {
   histogramPlot.appendChild(yAxis);
 
   sums.forEach((sum, idx) => {
-    const count = sumBins.get(sum);
-    const barHeight = (count / maxCount) * plotH;
-    const x = margin.left + idx * barW;
-    const y = margin.top + (plotH - barHeight);
+    const rows = [...sumBins.get(sum)].sort((a, b) => a.length - b.length);
+    const baseX = margin.left + idx * barW;
 
-    const rect = document.createElementNS(SVG_NS, 'rect');
-    rect.setAttribute('x', String(x + 1));
-    rect.setAttribute('y', String(y));
-    rect.setAttribute('width', String(Math.max(barW - 2, 1)));
-    rect.setAttribute('height', String(barHeight));
-    rect.setAttribute('fill', barColor);
-    rect.setAttribute('class', sum >= threshold ? 'bar-over-threshold' : 'bar-under-threshold');
-    rect.appendChild(document.createElementNS(SVG_NS, 'title')).textContent = `sum=${sum}, count=${count}`;
-    histogramPlot.appendChild(rect);
+    rows.forEach((row, stackIndex) => {
+      const rectHeight = Math.max(unitH - 1, 1);
+      const y = margin.top + plotH - (stackIndex + 1) * unitH;
+
+      const rect = document.createElementNS(SVG_NS, 'rect');
+      rect.setAttribute('x', String(baseX + 1));
+      rect.setAttribute('y', String(y));
+      rect.setAttribute('width', String(Math.max(barW - 2, 1)));
+      rect.setAttribute('height', String(rectHeight));
+      rect.setAttribute('fill', colorForLength(row.length, minLength, maxLength));
+      rect.setAttribute('class', sum >= threshold ? 'bar-over-threshold' : 'bar-under-threshold');
+      rect.appendChild(document.createElementNS(SVG_NS, 'title')).textContent = `sum=${row.sum}, length=${row.length}, subset={${row.subset.join(', ')}}`;
+      histogramPlot.appendChild(rect);
+    });
   });
 
   const minSum = sums[0];
@@ -180,7 +199,7 @@ function renderHistogram(sumBins, threshold) {
 
   const xLabelMin = document.createElementNS(SVG_NS, 'text');
   xLabelMin.setAttribute('x', String(margin.left));
-  xLabelMin.setAttribute('y', String(height - 20));
+  xLabelMin.setAttribute('y', String(height - 34));
   xLabelMin.setAttribute('fill', axisColor);
   xLabelMin.setAttribute('font-size', '12');
   xLabelMin.textContent = `min sum: ${minSum}`;
@@ -188,21 +207,33 @@ function renderHistogram(sumBins, threshold) {
 
   const xLabelMax = document.createElementNS(SVG_NS, 'text');
   xLabelMax.setAttribute('x', String(margin.left + plotW - 90));
-  xLabelMax.setAttribute('y', String(height - 20));
+  xLabelMax.setAttribute('y', String(height - 34));
   xLabelMax.setAttribute('fill', axisColor);
   xLabelMax.setAttribute('font-size', '12');
   xLabelMax.textContent = `max sum: ${maxSum}`;
   histogramPlot.appendChild(xLabelMax);
 
-  histogramSummary.textContent = `Histogram bins: ${sums.length} unique sum value(s), max frequency: ${maxCount}. Red line marks threshold M.`;
+  const legend = document.createElementNS(SVG_NS, 'text');
+  legend.setAttribute('x', String(margin.left));
+  legend.setAttribute('y', String(height - 14));
+  legend.setAttribute('fill', axisColor);
+  legend.setAttribute('font-size', '12');
+  legend.textContent = `Color encodes subset length (light=${minLength}, dark=${maxLength}).`; 
+  histogramPlot.appendChild(legend);
+
+  histogramSummary.textContent = `Histogram bins: ${sums.length} unique sum value(s), max frequency: ${maxCount}. Each stacked rectangle is one subset; red line marks threshold M.`;
 }
 
 function toCsv(rows) {
-  const header = 'index,subset,sum,length';
+  const maxLen = rows.reduce((m, r) => Math.max(m, r.subset.length), 0);
+  const elementHeaders = Array.from({ length: maxLen }, (_, i) => `e${i + 1}`);
+  const header = ['index', 'sum', 'length', ...elementHeaders].join(',');
+
   const lines = rows.map((row, idx) => {
-    const subsetText = `{${row.subset.join(' ')}}`;
-    return `${idx + 1},"${subsetText}",${row.sum},${row.length}`;
+    const elems = [...row.subset.map(String), ...Array.from({ length: maxLen - row.subset.length }, () => '')];
+    return [idx + 1, row.sum, row.length, ...elems].join(',');
   });
+
   return [header, ...lines].join('\n');
 }
 
@@ -221,10 +252,11 @@ function run() {
       throw new Error('M must be a positive integer.');
     }
 
-    const sumBins = enumerateSubsetSums(values);
+    const allSubsets = enumerateSubsets(values);
+    const sumBins = groupSubsetsBySum(allSubsets);
     renderHistogram(sumBins, threshold);
 
-    const rows = findSubsetsAtOrAbove(values, threshold);
+    const rows = findSubsetsAtOrAbove(allSubsets, threshold);
     latestRows = rows;
     renderRows(rows);
 

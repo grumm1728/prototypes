@@ -79,7 +79,7 @@ button[disabled] {
 #histogramPlot {
   width: 100%;
   min-width: 720px;
-  height: 280px;
+  height: 320px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: #f8fafc;
