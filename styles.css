@@ -1,0 +1,109 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #f6f7fb;
+  color: #111827;
+}
+
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+h1 { margin-bottom: 0.4rem; }
+h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+.lead { margin-top: 0; color: #374151; }
+.muted { color: #475569; }
+
+.controls, .summary, .histogram, .results {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+textarea, input {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  margin-bottom: 0.8rem;
+  font: inherit;
+}
+
+.actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 0.95rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  background: #2563eb;
+  color: #fff;
+}
+
+button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+#error {
+  min-height: 1.2rem;
+  color: #b91c1c;
+  margin: 0.5rem 0 0;
+}
+
+.histogram-scroll {
+  overflow-x: auto;
+}
+
+#histogramPlot {
+  width: 100%;
+  min-width: 720px;
+  height: 320px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.bar-over-threshold {
+  fill: #60a5fa;
+}
+
+.bar-under-threshold {
+  fill: #bfdbfe;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.55rem;
+  vertical-align: top;
+}
+
+th { background: #f8fafc; }
+.empty { color: #6b7280; }
