@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subset Sum Explorer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Subset Sum Explorer</h1>
+    <p class="lead">Enter an array <code>A</code> (positive integers) and a threshold <code>M</code>. We'll list subsets with sum ≥ <code>M</code>.</p>
+
+    <section class="controls" aria-label="Inputs">
+      <label for="arrayInput">Array A (comma or space separated)</label>
+      <textarea id="arrayInput" rows="3" placeholder="Example: 7, 7, 6, 6, 5, 1, 1, 1, 1">7,7,6,6,5,1,1,1,1</textarea>
+
+      <label for="thresholdInput">Threshold M</label>
+      <input id="thresholdInput" type="number" min="1" value="18" />
+
+      <div class="actions">
+        <button id="goButton" type="button">Go</button>
+        <button id="downloadButton" type="button" disabled>Download CSV</button>
+      </div>
+      <p id="error" class="error" role="alert"></p>
+    </section>
+
+    <section class="summary" aria-live="polite">
+      <p id="summaryText">No results yet.</p>
+    </section>
+
+    <section class="results">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Subset</th>
+            <th>Sum</th>
+            <th>Length</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody">
+          <tr><td colspan="4" class="empty">Run the search to see subsets.</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
