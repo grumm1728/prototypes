@@ -86,11 +86,12 @@ button[disabled] {
 }
 
 .bar-over-threshold {
-  fill: #60a5fa;
+  stroke: #1d4ed8;
+  stroke-width: 0.6;
 }
 
 .bar-under-threshold {
-  fill: #bfdbfe;
+  opacity: 0.9;
 }
 
 table {

@@ -15,7 +15,7 @@ Given an array `A` of positive integers and a threshold `M`, the app enumerates 
 - Sort results by descending sum (with deterministic tie-breakers)
 - Download displayed results as CSV (`index,sum,length,e1,e2,...`)
 - View a histogram of subset sums with a threshold marker
-- Each histogram bar is a stack of per-subset rectangles shaded by subset length
+- Each histogram bar is a stack of per-subset rectangles shaded by subset length relative to N (array length)
 
 ## Input limits
 
